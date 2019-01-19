@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Linq;
@@ -10,8 +11,17 @@ namespace MagicGlue
         public static void Main(string[] args)
         {
             var currentDir = Directory.GetCurrentDirectory();
+            
+            var outFilePath = Path.Combine(currentDir,"result.cs");
+            if(File.Exists(outFilePath))
+                File.Delete(outFilePath);
+            
+            var exceptionsFilePath = Path.Combine(currentDir,"exceptions");
+            var exceptions = new HashSet<string>();
+            if(File.Exists(exceptionsFilePath))
+                exceptions = new HashSet<string>(File.ReadAllLines(exceptionsFilePath).Select(s => Path.Combine(currentDir,s)));
             var res = Directory.GetFiles(currentDir)
-                .Where(f => f.EndsWith(".cs"))
+                .Where(f => f.EndsWith(".cs") && !exceptions.Contains(f))
                 .Select(ProcessFile)
                 .Aggregate((new StringBuilder(), new StringBuilder("namespace CodinGame\r\n{\r\n")), (acc, data) =>
                 {
@@ -19,10 +29,7 @@ namespace MagicGlue
                     acc.Item2.Append(data.code);
                     return acc;
                 });
-            res.Item2.Append("\n}");
-            var outFilePath = Path.Combine(currentDir,"result.cs");
-            if(File.Exists(outFilePath))
-                File.Delete(outFilePath);
+            res.Item2.Append("\n}");       
             var usings = string.Join("\r\n",res.Item1.ToString().Split(new[] {'\r', '\n'}).Distinct());
             File.WriteAllLines(outFilePath,new []{usings, res.Item2.ToString()});
 
