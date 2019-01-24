@@ -20,7 +20,7 @@ namespace MagicGlue
             var exceptions = new HashSet<string>();
             if(File.Exists(exceptionsFilePath))
                 exceptions = new HashSet<string>(File.ReadAllLines(exceptionsFilePath).Select(s => Path.Combine(currentDir,s)));
-            var res = Directory.GetFiles(currentDir)
+            var res = GetFiles(currentDir,exceptions)
                 .Where(f => f.EndsWith(".cs") && !exceptions.Contains(f))
                 .Select(ProcessFile)
                 .Aggregate((new StringBuilder(), new StringBuilder("namespace CodinGame\r\n{\r\n")), (acc, data) =>
@@ -33,6 +33,27 @@ namespace MagicGlue
             var usings = string.Join("\r\n",res.Item1.ToString().Split(new[] {'\r', '\n'}).Distinct());
             File.WriteAllLines(outFilePath,new []{usings, res.Item2.ToString()});
 
+        }
+
+        private static IEnumerable<string> GetFiles(string path, HashSet<string> exceptions)
+        {
+            var res = new List<string>();
+            GetFiles(path, exceptions, res);
+            foreach (var re in res)
+            {
+                Console.WriteLine(re);
+            }
+            return res;
+        }
+
+        private static void GetFiles(string directory, HashSet<string> exceptions, List<string> files)
+        {
+            files.AddRange(Directory.GetFiles(directory));
+            foreach (var dir in Directory.GetDirectories(directory))
+            {
+                if(!exceptions.Contains(dir))
+                    GetFiles(dir, exceptions, files);
+            }
         }
 
         private static (StringBuilder usings, StringBuilder code) ProcessFile(string path)
